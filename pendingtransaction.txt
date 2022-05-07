@@ -1,0 +1,270 @@
+How to view pending transaction
+================================
+
+
+A transaction is in-doubt when there is a failure during any aspect of the two-phase commit. 
+Distributed transactions become in-doubt in the following ways:
+
+A server machine running Oracle Database software crashes
+A network connection between two or more Oracle Databases involved in distributed processing is disconnected
+An unhandled software error occurs
+
+
+You can manually force the commit or rollback of a local,in-doubt distributed transaction. 
+Because this operation can generate consistency problems,perform it only when specific conditions exist.
+
+
+The RECO process automatically resolves in-doubt transactions when the machine, 
+network, or software problem is resolved. Until RECO can resolve the transaction, 
+the data is locked for both reads and writes.The database blocks reads because it 
+cannot determine which version of the data to display for a query.
+In the majority of cases, the database resolves the in-doubt transaction automatically.
+
+
+
+
+Resolution of in-doubt transactions can be complicated. 
+The procedure requires that you do the following:
+
+
+-> The users of the local database system that conflict with the locks of the in-doubt transaction receive the following error message:
+   ORA-01591: lock held by in-doubt distributed transaction 1.21.17
+
+->Identify the transaction identification number for the in-doubt transaction.
+->Query the DBA_2PC_PENDING and DBA_2PC_NEIGHBORS views to determine whether the databases involved in the transaction have committed.
+->If necessary, force a commit using the COMMIT FORCE statement or a rollback using the ROLLBACK FORCE statement.
+
+
+
+-> query the local DBA_2PC_PENDING data dictionary view to gain information about the in-doubt transaction:
+Lists all in-doubt distributed transactions. The view is empty until populated by an in-doubt transaction. 
+After the transaction is resolved, the view is purged.
+
+SELECT * FROM DBA_2PC_PENDING ;
+
+
+The database returns the following information:
+
+Column Name            Value
+---------------------- --------------------------------------
+LOCAL_TRAN_ID          1.21.17
+GLOBAL_TRAN_ID         SALES.ACME.COM.55d1c563.1.93.29
+STATE                  prepared
+MIXED                  no
+ADVICE
+TRAN_COMMENT           Sales/New Order/Trans_type 10B
+FAIL_TIME              31-MAY-91
+FORCE_TIME
+RETRY_TIME             31-MAY-91
+OS_USER                SWILLIAMS
+OS_TERMINAL            TWA139:
+HOST                   system1
+DB_USER                SWILLIAMS
+COMMIT#
+
+Note: 
+The global transaction ID is the common transaction ID that is the same on every node for a distributed transaction. 
+
+The transaction on this node is in a prepared state:
+
+STATE          prepared 
+
+Therefore, warehouse waits for its coordinator to send either a commit or a rollback request.
+
+
+
+set lines 360
+col LOCAL_TRAN_ID for a14
+col GLOBAL_TRAN_ID for a20
+col STATE for a8
+col MIXED for a5
+col ADVICE for a7
+col TRAN_COMMENT for a13
+col OS_USER for a10
+col OS_TERMINAL for a12
+col HOST for a10
+col DB_USER for a8
+col COMMIT# for a10
+col FAIL_TIME for a12
+col FORCE_TIME for a12
+col RETRY_TIME for a12
+SELECT * FROM DBA_2PC_PENDING order by FAIL_TIME desc;   
+
+LOCAL_TRAN_ID  GLOBAL_TRAN_ID       STATE    MIXE ADV TRAN_COMMENT  FAIL_TIME    FORCE_TIME   RETRY_TIME   OS_USER    OS_TERMINAL  HOST       DB_USER    COMMIT#
+-------------- -------------------- -------- ---- --- ------------- ------------ ------------ ------------ ---------- ------------ ---------- ---------- ----------
+               503635303035
+
+62.2.291640    4871251.C8969F007098 prepared no                     15-MAY-2016-              31-JUL-2017- qqegate1   unknown      lp10eai04.            9730842677
+               D28A6C70313065616930                                 07:44:39                  16:54:03                             w10                   940
+               342E7731302C6C703130
+               65616930345F6330322C
+               503635303035
+
+
+
+
+
+
+The DBA_2PC_NEIGHBORS view provides information about connections associated with an in-doubt transaction. 
+Information for each connection is different,based on whether the connection 
+is inbound (IN_OUT = in) or outbound (IN_OUT = out):
+Lists all incoming (from remote client) and outgoing (to remote server) in-doubt distributed transactions. 
+It also indicates whether the local node is the commit point site in the transaction.
+The view is empty until populated by an in-doubt transaction. After the transaction is resolved, the view is purged.
+
+SELECT * FROM DBA_2PC_NEIGHBORS
+  WHERE LOCAL_TRAN_ID = '1.21.17'
+  ORDER BY SESS#, IN_OUT;
+
+
+Column Name            Value
+---------------------- --------------------------------------
+LOCAL_TRAN_ID          1.21.17
+IN_OUT                 in
+DATABASE               SALES.ACME.COM
+DBUSER_OWNER           SWILLIAMS
+INTERFACE              N
+DBID                   000003F4
+SESS#                  1
+BRANCH                 0100
+
+In this example, the IN_OUT column reveals that the warehouse database is a server 
+for the sales client, as specified in the DATABASE column:
+IN_OUT                 in
+DATABASE               SALES.ACME.COM
+
+
+The connection to warehouse was established through a database link from the swilliams account, 
+as shown by the DBUSER_OWNER column:
+DBUSER_OWNER           SWILLIAMS
+
+Determining the Commit Point Site
+Additionally, the INTERFACE column tells whether the local node or a subordinate node is the commit point site:
+
+INTERFACE              N
+Neither warehouse nor any of its descendants is the commit point site, as shown by the INTERFACE column.
+
+
+set lines 360
+col LOCAL_TRAN_ID for a14 
+col DATABASE for a12
+col DBUSER_OWNER for a14 
+col INTERFACE for a10
+col DBID for a15
+col BRANCH for a15
+SELECT * FROM DBA_2PC_NEIGHBORS WHERE LOCAL_TRAN_ID = '62.2.291640' ORDER BY SESS#,IN_OUT
+
+
+LOCAL_TRAN_ID  IN_OUT    DATABASE     DBUSER_OWNER   INT DBID                 SESS# BRANCH
+-------------- --------- ------------ -------------- --- --------------- ---------- ---------------
+62.2.291640    in        jdbc_23434   DLRINTUSR      N   jdbc_ttc_impl            1 6C7031306561693
+                                                                                    0342E7731302C6C
+                                                                                    703130656169303
+                                                                                    45F6330322C5036
+                                                                                    353030352C01
+Manually Committing an In-Doubt Transaction
+
+Committing Using Only the Transaction ID
+
+COMMIT FORCE 'transaction_id';
+COMMIT FORCE '1.45.13';
+
+
+Manually Rolling Back an In-Doubt Transaction
+
+The following SQL statement rolls back an in-doubt transaction:
+
+ROLLBACK FORCE 'transaction_id';
+ROLLBACK FORCE '2.9.4';
+
+Note:
+You cannot roll back an in-doubt transaction to a savepoint.
+
+
+Purging Pending Rows from the Data Dictionary
+===============================================
+
+Before RECO recovers an in-doubt transaction, the transaction appears in DBA_2PC_PENDING.STATE as COLLECTING, COMMITTED, or PREPARED. 
+If you force an in-doubt transaction using COMMIT FORCE or ROLLBACK FORCE, then the states FORCED COMMIT or FORCED ROLLBACK may appear.
+
+Automatic recovery normally deletes entries in these states. The only exception is when recovery discovers a forced transaction 
+that is in a state inconsistent with other sites in the transaction. In this case, the entry can be left in the table and the 
+MIXED column in DBA_2PC_PENDING has a value of YES. These entries can be cleaned up with the DBMS_TRANSACTION.PURGE_MIXED procedure.
+
+If automatic recovery is not possible because a remote database has been permanently lost, then recovery cannot identify the re-created 
+database because it receives a new database ID when it is re-created. In this case, you must use the PURGE_LOST_DB_ENTRY procedure 
+in the DBMS_TRANSACTION package to clean up the entries. The entries do not hold up database resources, so there is no urgency in cleaning them up.
+
+
+
+
+
+Determining When to Use DBMS_TRANSACTION
+============================================
+
+The following tables indicates what the various states indicate about the distributed transaction what the administrator's action should be:
+
+STATE Column 		State of Global Transaction 		State of Local Transaction 		Normal Action 			Alternative Action
+Collecting 			Rolled back 				Rolled back 				None 			PURGE_LOST_DB_ENTRY (only if autorecovery cannot resolve transaction)
+Committed 			Committed 				Committed 				None 			PURGE_LOST_DB_ENTRY (only if autorecovery cannot resolve transaction)
+Prepared 			Unknown 				Prepared 				None 			Force commit or rollback
+Forced commit 	   		Unknown 				Committed 				None 			PURGE_LOST_DB_ENTRY (only if autorecovery cannot resolve transaction)
+Forced rollback 		Unknown 				Rolled back 				None 			PURGE_LOST_DB_ENTRY (only if autorecovery cannot resolve transaction)
+Forced commit 			Mixed 					Committed 		    Manually remove inconsistencies
+                                                                                                    then use PURGE_MIXED 	-
+Forced rollback 		Mixed 					Rolled back 	            Manually remove inconsistencies 
+                                                                                                    then use PURGE_MIXED 	-
+																							
+																							
+																							
+																							
+Executing the PURGE_LOST_DB_ENTRY Procedure
+=============================================
+
+To manually remove an entry from the data dictionary, use the following syntax (where trans_id is the identifier for the transaction):
+
+For example, to purge pending distributed transaction 1.44.99, enter the following statement in SQL*Plus:
+
+EXECUTE DBMS_TRANSACTION.PURGE_LOST_DB_ENTRY('1.44.99');
+
+Execute this procedure only if significant reconfiguration has occurred so that 
+automatic recovery cannot resolve the transaction. Examples include:
+
+Total loss of the remote database
+Reconfiguration in software resulting in loss of two-phase commit capability
+Loss of information from an external transaction coordinator such as a TPMonitor
+																							
+
+Specifying the Commit Point Strength of a Node
+===============================================
+
+The database with the highest commit point strength determines which node commits first in a  
+distributed transaction. When specifying a commit point strength for each node,ensure that the 
+most critical server will be non-blocking if a failure occurs during a prepare or commit phase. 
+The COMMIT_POINT_STRENGTH initialization parameter determines the commit point strength of a node.
+
+The default value is operating system-dependent. The range of values is any integer from 0 to 255. 
+For example, to set the commit point strength of a database to 200, include the following line in 
+the database initialization parameter file:
+
+COMMIT_POINT_STRENGTH = 200
+
+The commit point strength is only used to determine the commit point site in a distributed transaction.
+
+When setting the commit point strength for a database, note the following considerations:
+
+Because the commit point site stores information about the status of the transaction, 
+the commit point site should not be a node that is frequently unreliable or unavailable
+in case other nodes need information about transaction status.
+
+Set the commit point strength for a database relative to the amount of critical shared data in the database. 
+For example, a database on a mainframe computer usually shares more data among users than a database on a PC. 
+Therefore, set the commit point strength of the mainframe to a higher value than the PC.
+
+
+
+
+
+
+https://docs.oracle.com/cd/B28359_01/server.111/b28310/ds_txns004.htm#ADMIN12233
+http://www.dba-oracle.com/t_two_phase_commit_2pc.htm

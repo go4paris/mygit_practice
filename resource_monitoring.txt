@@ -1,0 +1,167 @@
+don't gather stale statitics for the below users as 
+they are our user only
+
+
+
+sys,
+system,
+BMW_system,
+BMW_stdcnfg,
+DBSNMP
+XDB
+BMW_TIV_Connect
+
+.
+
+
+
+
+check below points
+
+1)stats
+
+2)access advisor
+
+3)creating composite index
+
+4)hash joint is always fast
+
+5)memory
+
+6)segments 
+
+7)SGA  
+
+8)redo generation 
+
+9)stale_stats
+
+
+check wiki link as well for performance monitoring
+
+
+
+
+Since the database is running in 12c we recommend below parameter to be set at database level. Please raise a change task with us to set it up.
+
+set parameter OPTIMIZER_ADAPTIVE_FEATURES=false
+
+
+
+
+
+a. Tuning improvements to be done by DB/application-responsibilities:
+ 
+1. Missing or stale statistics have been found for the following users:
+Please establish a statistics gathering job for the resource-Users; 
+Details: http://it.muc/rc/IT_Intranet/Services_en/Database/10_db_Products/10_db_Produkte_Oracle/USER_HELP_UTILITIES/BMW_STATS/index.htm
+
+
+
+
+2. SQL Tuning Advisory recommendations for query improvement
+
+
+
+
+3. Individual database segments responsible for significant "User I/O" were found below. 
+   Please Investigate application logic involving I/O on below Top Segments ordered by Physical Reads.
+
+
+
+
+4. Fragmentation Details:
+   Most of the schema objects are fragmented, please refresh the schema/object for defragmentation(raise a change task for same).
+   Please perform the refresh activity on your test db first in order to avoid any conflict while doing in prod db.
+
+
+
+5. Hard Parse Due to Literal Usage(check Addm report)
+
+
+select parsing_schema_name,sql_id,sql_fulltext,USERS_EXECUTING,module,action,program_id,program_line#,bind_data from v$sql 
+where executions =1 and last_active_time < sysdate -1/24 and parsing_schema_name not in ('SYS','SYSTEM');
+
+
+Please be aware that when Oracle sent a query, it checks to see if that query is already in the shared pool or not. 
+If it is, it can reuse that query with minimal overhead, if not ,it has to use CPU to constitute the executable therefore causing CPU load. 
+In order to fix this issue:
+
+5.a. If the values in SQL Statements are likely to change, then Oracle has to re-parse these queries, 
+even if it is already in the shared pool, even if the only differences are the values used in the where clause predicates. 
+We can solve this problem by writing our SQL as shared SQL. This is done through the use of bind variables.
+
+5.b. Alternatively, we can enable cursor_sharing parameter to FORCE, if so, Oracle will replace literal values with system generated bind values. 
+This can have the effect of reducing hard parsing ultimately reducing CPU load immensely. When cursor_sharing is set to FORCE, 
+it will force cursors that are the same except for literals to use the same cursor. 
+Choosing this option allows the optimizer to make smarter choices in the way it approaches reuse of cursors.
+
+
+
+
+
+6.Too many Indexes found for the following tables. Remove the unwanted indexes and create composite index based on your application logic 
+  to minimize the wait time.
+
+select OWNER,
+TABLE_NAME,
+COUNT(*) index_count
+from dba_indexes 
+where OWNER not in ('SYS','SYSTEM')
+group by OWNER, TABLE_NAME 
+having COUNT(*) > 5 
+order by COUNT(*) desc, OWNER, TABLE_NAME; 
+
+
+7.We have observed invalid objects in the database, please validate ASAP!
+
+
+
+
+8. Root cause for CPU load is Reparsing SQL Statements:
+
+When Oracle executes a SQL statement, it parses it to determine whether the syntax and its contents are correct. 
+This process can consume significant overhead. 
+Once parsed, Oracle does not parse the statement again unless the parsing information is aged from the memory cache and is no longer available. 
+Ineffective memory sharing among SQL statements can result in reparsing. 
+
+
+
+SELECT distinct sql_id,sql_text, PARSE_CALLS, EXECUTIONS FROM V$SQLAREA ORDER BY PARSE_CALLS;
+
+SQL_ID                                  PARSE_CALLS EXECUTIONS
+--------------------------------------- ----------- ----------
+f3g84j69n0tjh                                 77473     419758
+9rfqm06xmuwu0                                 77477     419758
+
+
+
+From above details it is clear that  sql statements are going to parse very often when they are going for execution every time 
+(for bottom sql id’s parse calls are equal to number of executions). SQL statements were not shared due to the usage of literals. 
+This resulted in additional hard parses which were consuming significant CPU load and database time.
+
+Investigate application logic for possible use of bind variables instead of literals. 
+Please find the attachment for complete list of sql statements with text which are going for more parse calls. 
+Please try tune to tune the sql statements which has parse calls nearly equal to number of executions .
+
+Alternatively, we can set the parameter "cursor_sharing" to "force", which will immensely reduce the CPU load. 
+
+
+
+
+b. Changes to DB-configuration (please address via Change/Task to Oracle-operation; 
+see Task-guidelines for details - http://it.muc/rc/IT_Intranet/downloads/Services/Datenbanken_und_DatenmanagementEN/Taskguidelines-oracle.xlsx )
+
+
+
+1.	SGA is undersized, need to increase from 1200 Mb to 1500 Mb.
+
+
+
+
+2.	Online redologs are undersized, need to increase from 32 Mb to 512 Mb.
+
+
+
+
+
