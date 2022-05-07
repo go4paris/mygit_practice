@@ -1,0 +1,29 @@
+#!/bin/ksh
+
+NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
+DATE=`date +%m%d%y_%H%M`
+
+. /home/oracle/profile_10g
+
+export ORACLE_SID=cast53p
+
+$ORACLE_HOME/bin/rman target / CATALOG rman/simplerm@oemrep \
+log=/rman/logs/`date +%d%m%y%H%M`_cast53p_full.log <<EOF
+
+run {
+        sql "alter system switch logfile";
+        ALLOCATE CHANNEL T1 TYPE 'sbt_tape' PARMS
+        'ENV=(TDPO_OPTFILE=/usr/tivoli/tsm/client/oracle/bin64/tdpo.opt)';
+        BACKUP INCREMENTAL LEVEL 0
+        DATABASE FORMAT 'cast53p_df_%t_%s_%p_%u'
+        TAG 'Daily_full_BACKUP_$DATE';
+}
+
+        BACKUP ARCHIVELOG ALL DELETE ALL INPUT;
+
+CROSSCHECK BACKUP;
+LIST BACKUP SUMMARY;
+LIST BACKUP;
+
+#DELETE NOPROMPT OBSOLETE;
+EOF

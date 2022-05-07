@@ -1,0 +1,71 @@
+[qxl0754]tdpsat89@lt34d06:/home/qxl0754$ atop
+ATOP - lt34d06                                      2016/03/02  11:49:42                                      ----x--P-                                      57s elapsed
+PRC |  sys   10.99s |  user   3m52s  | #proc   2891  |  #trun      6 |  #tslpi  3418  | #tslpu     1  | #zombie    0  |  clones   622 |                | no  procacct  |
+CPU |  sys      20% |  user    425%  | irq       4%  |  idle    752% |  wait      0%  |               | steal     0%  |  guest     0% |  curf 3.40GHz  | curscal   ?%  |
+CPL |  avg1    4.57 |  avg5    5.47  |               |  avg15   6.26 |                | csw  5083715  | intr 2710144  |               |                | numcpu    12  |
+MEM |  tot   252.0G |  free    6.7G  | cache  71.9G  |  dirty   1.9M |  buff    1.1G  | slab    4.4G  |               |               |                |               |
+SWP |  tot    32.0G |  free   32.0G  |               |               |                |               |               |               |  vmcom  28.2G  | vmlim 132.7G  |
+LVM |  local-lvhome |  busy      0%  | read       0  |  write      6 |  KiB/r      0  | KiB/w      3  | MBr/s   0.00  |  MBw/s   0.00 |  avq     0.00  | avio 0.00 ms  |
+LVM |  -lvlfsoracle |  busy      0%  | read       0  |  write     68 |  KiB/r      0  | KiB/w      4  | MBr/s   0.00  |  MBw/s   0.01 |  avq     0.00  | avio 0.00 ms  |
+LVM |  soracleaudit |  busy      0%  | read       0  |  write      2 |  KiB/r      0  | KiB/w      0  | MBr/s   0.00  |  MBw/s   0.00 |  avq     0.00  | avio 0.00 ms  |
+DSK |          sdrg |  busy     10%  | read    7189  |  write     50 |  KiB/r    289  | KiB/w    214  | MBr/s  35.65  |  MBw/s   0.18 |  avq     1.51  | avio 0.79 ms  |
+DSK |          sdee |  busy     10%  | read    7191  |  write     47 |  KiB/r    286  | KiB/w    215  | MBr/s  35.27  |  MBw/s   0.17 |  avq     1.50  | avio 0.78 ms  |
+DSK |          sdrf |  busy      6%  | read    3274  |  write      0 |  KiB/r    273  | KiB/w      0  | MBr/s  15.35  |  MBw/s   0.00 |  avq     1.57  | avio 0.98 ms  |
+NET |  transport    |  tcpi  218667  | tcpo  216114  |  udpi     206 |  udpo     207  | tcpao    107  | tcppo     54  |  tcprs      7 |  tcpie      0  | udpip      0  |
+NET |  network      |  ipi   218881  | ipo   215808  |  ipfrw      0 |  deliv 218881  |               |               |               |  icmpi      2  | icmpo      2  |
+NET |  eth0      0% |  pcki  112416  | pcko  108812  |  si 4510 Kbps |  so 5687 Kbps  | coll       0  | erri       0  |  erro       0 |  drpi       0  | drpo       0  |
+NET |  eth1      0% |  pcki      99  | pcko       0  |  si    1 Kbps |  so    0 Kbps  | coll       0  | erri       0  |  erro       0 |  drpi       0  | drpo       0  |
+NET |  eth3      0% |  pcki      30  | pcko       0  |  si    0 Kbps |  so    0 Kbps  | coll       0  | erri       0  |  erro       0 |  drpi      30  | drpo       0  |
+
+  PID   TID S AMEM COMMAND-LINE (horizontal scroll with <- and -> keys)                                                                                             1/38
+10034     - R   0% ora_j006_tdifsu22
+21698     - S   0% ora_dbw0_tdkiqa79
+106798     - S   0% ora_dbw0_tdkiqa89
+94569     - S   0% ora_dbw0_idkiqa
+29946     - S   0% ora_arc0_tdipscah
+29958     - S   0% ora_arc3_tdipscah
+109011     - S   0% ora_arc0_tdpsat89
+109015     - S   0% ora_arc1_tdpsat89
+22805     - S   0% ora_arc0_tdkiqa79
+93347     - S   0% ora_arc3_tdipst89
+106858     - S   0% ora_arc0_tdkiqa89
+93337     - S   0% ora_arc1_tdipst89
+22809     - S   0% ora_arc1_tdkiqa79
+22817     - S   0% ora_arc3_tdkiqa79
+75920     - S   0% ora_arc0_tdifsu22
+106862     - S   0% ora_arc1_tdkiqa89
+10616     - S   0% ora_dbw0_tdipsp79
+106870     - S   0% ora_arc3_tdkiqa89
+75928     - S   0% ora_arc2_tdifsu22
+75932     - S   0% ora_arc3_tdifsu22
+112945     - S   0% ora_arc0_tds141ah
+143681     - S   0% ora_arc0_tdpsat12
+112961     - S   0% ora_arc3_tds141ah
+144239     - S   0% ora_arc2_tdpsat12
+
+
+
+[qxl0754]tdpsat89@lt34d06:/home/qxl0754$ ps -ejf|grep qxl0754
+root      56558    421  56558  56558  0 11:40 ?        00:00:00 sshd: qxl0754 [priv]
+qxl0754   56568  56558  56558  56558  0 11:40 ?        00:00:00 sshd: qxl0754@pts/3
+qxl0754   56569  56568  56569  56569  0 11:40 pts/3    00:00:00 /usr/bin/ksh -i
+qxl0754   56755  56569  56755  56569  0 11:40 pts/3    00:00:00 sqlplus @/lfs/oracle/oradba/bmw_params_sys.sql
+root      64802    421  64802  64802  0 11:42 ?        00:00:00 sshd: qxl0754 [priv]
+qxl0754   64804  64802  64802  64802  0 11:42 ?        00:00:00 sshd: qxl0754@pts/4
+qxl0754   64805  64804  64805  64805  0 11:42 pts/4    00:00:00 /usr/bin/ksh -i
+qxl0754   91265  64805  91265  64805  0 11:52 pts/4    00:00:00 ps -ejf
+qxl0754   91266  64805  91265  64805  0 11:52 pts/4    00:00:00 grep qxl0754
+
+
+
+DBA_JOBS_RUNNING
+
+                   Fail
+       SID     Job ures Last_date        LAST_SEC THIS_DATE        THIS_SEC   INSTANCE
+---------- ------- ---- ---------------- -------- ---------------- -------- ----------
+       221    1081    0 01.03.2016 20:23 20:23:51 02.03.2016 08:23 08:23:51          0
+       857    1616    0 16.02.2016 09:17 09:17:45 16.02.2016 09:18 09:18:15          0
+      1491    1055    0 02.03.2016 11:55 11:55:02 02.03.2016 12:00 12:00:02          0
+
+
+

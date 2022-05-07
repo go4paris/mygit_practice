@@ -1,0 +1,74 @@
+Auditing in Oracle
+===================
+
+Auditing is the monitoring and recording of selected user database actions. 
+In standard auditing, you use initialization parameters and the AUDIT and NOAUDIT SQL statements 
+to audit SQL statements, privileges, and schema objects, and network and multitier activities.
+
+Oracle stores information that is relevant to auditing in its data dictionary.
+
+Every time a user attempts anything in the database where audit is enabled the Oracle kernel checks 
+to see if an audit record should be created or updated (in the case or a session record) and 
+generates the record in a table owned by the SYS user called AUD$. This table is, by default, 
+located in the SYSTEM tablespace. This itself can cause problems with potential denial of service attacks. 
+If the SYSTEM tablespace fills up, the database will hang.
+
+Auditing is disabled by default, but can enabled by setting the AUDIT_TRAIL static parameter, 
+which has the following allowed values.
+
+AUDIT_TRAIL = { none | os | db | db,extended | xml | xml,extended }
+
+The following list provides a description of each setting:
+
+    none or false - Auditing is disabled.
+    db or true - Auditing is enabled, with all audit records stored in the database audit trial (SYS.AUD$).
+    db,extended - As db, but the SQL_BIND and SQL_TEXT columns are also populated.
+    xml- Auditing is enabled, with all audit records stored as XML format OS files.
+    xml,extended - As xml, but the SQL_BIND and SQL_TEXT columns are also populated.
+    os- Auditing is enabled, with all audit records directed to the operating system's audit trail.
+
+
+To enable auditing and direct audit records to the database audit trail, we would do the following.
+
+
+1.  Log in as SYS with SYSDBA privileges
+
+Sqlplus / as sysdba
+
+2.  Check the current settings
+
+SQL> show parameter audit
+NAME                                 TYPE        VALUE
+---------------------- ----------- ------------------------------
+audit_file_dest        string      /opt/app/oracle/admin/db11/adump
+audit_sys_operations   boolean     FALSE
+audit_syslog_level     string
+audit_trail            string      DB
+
+3.  Set the type of auditing you want by setting the audit_trail parameter
+
+SQL> alter system set audit_trail=OS scope=spfile;
+System altered.
+
+4.  Set the auditing destination
+
+SQL> alter system set audit_file_dest='/opt/app/oracle/admin/db11/adump' scope=spfile;
+System altered.
+
+5.  Restart the Oracle instance
+
+SQL> SHUTDOWN
+SQL> STARTUP
+
+
+
+Also note that there are two additional parameters audit_sys_operations and audit_syslog_level 
+that you should consider setting if you are concerned about the SYS account activity.
+
+1.audit_sys_operations - this initialization parameter tells Oracle to turn on auditing of the SYS connections, 
+and users connecting with the SYSDBA or SYSOPER privilege. It has either a TRUE or FALSE value
+
+2.audit_syslog_level – this initialization parameter enables SYS and 
+standard OS auditing records to be written to the system using the SYSLOG utility
+
+https://oracle-base.com/articles/10g/auditing-10gr2
